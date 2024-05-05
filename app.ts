@@ -29,7 +29,7 @@ app.use(cors())
 
 
 const openAI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: "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",
 });
 
 
