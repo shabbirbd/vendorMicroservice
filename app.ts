@@ -1,10 +1,30 @@
 require('dotenv').config();
+// import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import cors from 'cors';
 import express, { Request, Response } from 'express';
 import fs from 'fs';
 import OpenAI from 'openai';
 import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
 import { YoutubeTranscript } from 'youtube-transcript';
+
+// import * as AWS from 'aws-sdk';
+// import { GetSecretValueResponse } from 'aws-sdk/clients/secretsmanager';
+
+// const client = new SecretsManagerClient({ region: "us-east-1" });
+
+
+// const getSecret = async (): Promise<string | any>=>{
+//     const command = new GetSecretValueCommand({ SecretId: "openai/key" });
+//     const data = await client.send(command);
+    
+//       if (data.SecretString) {
+//         const secret = JSON.parse(data.SecretString);
+//             return secret;
+//       } else{
+//         console.error('Secret string is undefined.');
+//         return null
+//       }
+// }
 
 type ChatCompletionRequestMessageRole = "system" | "user" | "assistant";
 // constants
@@ -27,8 +47,7 @@ app.use(express.json());
 app.use(cors())
 
 
-
-const openAI = new OpenAI({
+const openAI =  new  OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
