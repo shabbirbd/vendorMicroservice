@@ -7,24 +7,6 @@ import OpenAI from 'openai';
 import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
 import { YoutubeTranscript } from 'youtube-transcript';
 
-// import * as AWS from 'aws-sdk';
-// import { GetSecretValueResponse } from 'aws-sdk/clients/secretsmanager';
-
-// const client = new SecretsManagerClient({ region: "us-east-1" });
-
-
-// const getSecret = async (): Promise<string | any>=>{
-//     const command = new GetSecretValueCommand({ SecretId: "openai/key" });
-//     const data = await client.send(command);
-    
-//       if (data.SecretString) {
-//         const secret = JSON.parse(data.SecretString);
-//             return secret;
-//       } else{
-//         console.error('Secret string is undefined.');
-//         return null
-//       }
-// }
 
 type ChatCompletionRequestMessageRole = "system" | "user" | "assistant";
 // constants
@@ -261,6 +243,31 @@ const createTunedModel = async (jobId: string) => {
 
 
 
+  const updateChat = async (chatId:string, chatForUpdate: {})=>{
+    console.log("Updating chat data with modelName and provider....")
+    try {
+      console.log("updating...", chatId)
+      const newChat = {...chatForUpdate}
+      const response = await fetch(`https://vendor-ecru.vercel.app/api/chat`, {
+          method: "PUT",
+          headers: {
+              "Content-Type": "application/json"
+          },
+          body: JSON.stringify({chatId: chatId, newChat: newChat })
+      });
+      console.log(response, "response after updating attempt")
+      return "Updated..."
+    } catch (error: any) {
+      console.log("Error while updating the chat", error.message)
+      throw error
+    }
+  }
+
+
+
+
+
+
 app.post('/createModel', async (req: Request , res: Response) => {
     const { video_ids, currentChat } = await req.body;
     console.log(video_ids, "video_ids from body....");
@@ -292,17 +299,17 @@ app.post('/createModel', async (req: Request , res: Response) => {
         const fineTuningId = await initiateFinetuning(filePath);
         const createdModel = await createTunedModel(fineTuningId);
 
-        // if (createdModel) {
-        //     const newChat = {
-        //         ...currentChat,
-        //         modelName: createdModel,
-        //         provider: 'gpt',
-        //     };
-        //     const updateLog = await updateChat(currentChat._id, newChat);
-        //     console.log("update log..", updateLog);
-        // } else {
-        //     console.log('Model name not returned from the service');
-        // }
+        if (createdModel) {
+            const newChat = {
+                ...currentChat,
+                modelName: createdModel,
+                provider: 'gpt',
+            };
+            const updateLog = await updateChat(currentChat._id, newChat);
+            console.log("update log..", updateLog);
+        } else {
+            console.log('Model name not returned from the service');
+        }
 
         return res.status(200).json({ model_name: createdModel });
     } catch (error) {
