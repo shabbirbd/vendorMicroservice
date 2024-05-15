@@ -302,7 +302,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
         if (createdModel) {
             const newChat = {
                 ...currentChat,
-                modelName: createdModel,
+                baseModel: createdModel,
                 provider: 'gpt',
             };
             const updateLog = await updateChat(currentChat._id, newChat);
