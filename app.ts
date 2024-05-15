@@ -84,7 +84,7 @@ const generateData = async (prompt: string, full_text:string, prevExamples:Examp
   }
 
     const response = await openAI.chat.completions.create({
-        model: "gpt-4-0125-preview",
+        model: "gpt-3.5-turbo-0125",
         messages: messages,
         temperature: temperature,
         max_tokens: 1000,
@@ -255,8 +255,9 @@ const createTunedModel = async (jobId: string) => {
           },
           body: JSON.stringify({chatId: chatId, newChat: newChat })
       });
-      console.log(response, "response after updating attempt")
-      return "Updated..."
+      const updatedChat = await response.json();
+      console.log(response.status, "response after updating attempt")
+      return updatedChat
     } catch (error: any) {
       console.log("Error while updating the chat", error.message)
       throw error
@@ -298,6 +299,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
         const filePath: string = await saveTrainingData(parsedExamples, systemMessages);
         const fineTuningId = await initiateFinetuning(filePath);
         const createdModel = await createTunedModel(fineTuningId);
+        console.log("created model.....", createdModel)
 
         if (createdModel) {
             const newChat = {
@@ -305,8 +307,9 @@ app.post('/createModel', async (req: Request , res: Response) => {
                 baseModel: createdModel,
                 provider: 'gpt',
             };
+            console.log(newChat, "newChat.....")
             const updateLog = await updateChat(currentChat._id, newChat);
-            console.log("update log..", updateLog);
+            console.log("update log.......", updateLog);
         } else {
             console.log('Model name not returned from the service');
         }
