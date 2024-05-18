@@ -334,6 +334,26 @@ const extractAndSaveAudio = async (url : any, chat: any) => {
 }
 
 
+const getChatById = async (chatId: string)=>{
+    console.log("Getting chat....")
+    try {
+      console.log("Getting...", chatId)
+      const response = await fetch(`https://vendor-ecru.vercel.app/api/chat/getChatById/${chatId}`, {
+          method: "GET",
+          headers: {
+              "Content-Type": "application/json"
+          }
+      });
+      const chat = await response.json();
+      console.log(response.status, "response after getting attempt")
+      return chat
+    } catch (error: any) {
+      console.log("Error while updating the chat", error.message)
+      throw error
+    }
+}
+
+
 app.post('/createModel', async (req: Request , res: Response) => {
     const { video_ids, currentChat } = await req.body;
     console.log(video_ids, "video_ids from body....");
@@ -366,15 +386,16 @@ app.post('/createModel', async (req: Request , res: Response) => {
         const filePath: string = await saveTrainingData(parsedExamples, systemMessages);
         const fineTuningId = await initiateFinetuning(filePath);
         const createdModel = await createTunedModel(fineTuningId);
-        console.log("created model.....", createdModel)
+        console.log("created model.....", createdModel);
+
+        const getChat = await getChatById(currentChat._id);
 
         if (createdModel) {
             const newChat = {
-                ...currentChat,
+                ...getChat,
                 baseModel: createdModel,
                 provider: 'gpt',
             };
-            console.log(newChat, "newChat.....")
             const updateLog = await updateChat(currentChat._id, newChat);
             console.log("Chat updated successfully with model name...", updateLog);
         } else {
@@ -390,5 +411,5 @@ app.post('/createModel', async (req: Request , res: Response) => {
 
 
 app.listen(port,'0.0.0.0', () => {
-    console.log(`App running on http://localhost:${port}`);
+    console.log(`Model creation running on ${port}`);
 });
