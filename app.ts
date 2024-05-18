@@ -376,8 +376,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
             };
             console.log(newChat, "newChat.....")
             const updateLog = await updateChat(currentChat._id, newChat);
-            const updatedChat = await updateLog.json();
-            console.log("Chat updated successfully with model name...", updatedChat.handle);
+            console.log("Chat updated successfully with model name...", updateLog);
         } else {
             console.log('Model name not returned from the service');
         }
