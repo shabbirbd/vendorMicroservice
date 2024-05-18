@@ -1,11 +1,22 @@
 require('dotenv').config();
-// import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import cors from 'cors';
 import express, { Request, Response } from 'express';
+import ffmpeg from 'fluent-ffmpeg';
+import FormData from 'form-data';
 import fs from 'fs';
+import fetch from 'node-fetch';
 import OpenAI from 'openai';
 import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
+import path from 'path';
 import { YoutubeTranscript } from 'youtube-transcript';
+import ytdl from 'ytdl-core';
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+
+
+
+
 
 
 type ChatCompletionRequestMessageRole = "system" | "user" | "assistant";
@@ -44,6 +55,8 @@ function shuffleArray(array: any[]) {
     }
     return array;
 }
+
+
 
 const getTranscript = async (videoId: string)=>{
     const fullTexts = await YoutubeTranscript.fetchTranscript(videoId);
@@ -236,15 +249,15 @@ const createTunedModel = async (jobId: string) => {
             throw error; // or handle the error as needed
         }
     }
-  }
+}
 
 
 
 
 
 
-  const updateChat = async (chatId:string, chatForUpdate: {})=>{
-    console.log("Updating chat data with modelName and provider....")
+const updateChat = async (chatId:string, chatForUpdate: {})=>{
+    console.log("Updating chat....")
     try {
       console.log("updating...", chatId)
       const newChat = {...chatForUpdate}
@@ -262,11 +275,63 @@ const createTunedModel = async (jobId: string) => {
       console.log("Error while updating the chat", error.message)
       throw error
     }
-  }
+}
 
 
 
+const extractAndSaveAudio = async (url : any, chat: any) => {
+    if (!ytdl.validateURL(url)) {
+        console.log("Invalid video url...")
+        return
+    }
 
+    const output = await path.resolve('output.mp3');
+
+    const stream = await  ytdl(url, {
+        quality: 'highestaudio',
+    });
+
+     ffmpeg(stream)
+        .audioCodec('libmp3lame') // Ensure the codec is set for mp3
+        .toFormat('mp3')
+        .save(output) // Save locally
+        .on('end', async () => {
+            console.log('File has been converted succesfully');
+            // sendToAnotherAPI(output, res); )
+            const filePath = path.resolve('./output.mp3'); 
+            const formData = new FormData();
+            formData.append("files", fs.createReadStream(filePath))
+            formData.append("name", chat.name)
+
+            const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+                method: "POST",
+                body: formData,
+                headers: {
+                    ...formData.getHeaders(),
+                    "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
+                },
+            });
+
+            const voiceId = await response.json();
+            if(response.ok){
+                console.log(voiceId.voice_id, "voiceID.......................");
+                const newChat = {
+                    ...chat,
+                    voiceId: voiceId.voice_id,
+                }
+                const updateLog = await updateChat(chat._id, newChat);
+                console.log("Chat updated successfully with voiceId..." , updateLog)
+                return
+            } else {
+                console.error("Failed to clone voice..." , response)
+                return
+            }
+        })
+        .on('error', (err) => {
+            console.error('Error converting file: ', err);
+            return
+        });
+}
 
 
 app.post('/createModel', async (req: Request , res: Response) => {
@@ -279,10 +344,12 @@ app.post('/createModel', async (req: Request , res: Response) => {
 
     try {
         // Your existing logic
+        const urlForVoice = `https://www.youtube.com/watch?v=${video_ids[0]}`
+        await extractAndSaveAudio(urlForVoice, currentChat);
         const fullTexts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
         const texts = fullTexts.map((item) => {
             return item.map((subItem) => subItem.text).join(" ");
-        }) as string[]
+        }) as string[];
 
         let prevExamples: any[] = [];
         for (const fullText of texts) {
@@ -309,7 +376,8 @@ app.post('/createModel', async (req: Request , res: Response) => {
             };
             console.log(newChat, "newChat.....")
             const updateLog = await updateChat(currentChat._id, newChat);
-            console.log("update log.......", updateLog);
+            const updatedChat = await updateLog.json();
+            console.log("Chat updated successfully with model name...", updatedChat.handle);
         } else {
             console.log('Model name not returned from the service');
         }
