@@ -60,7 +60,7 @@ function shuffleArray(array: any[]) {
 
 const getTranscript = async (videoId: string)=>{
     const fullTexts = await YoutubeTranscript.fetchTranscript(videoId);
-    console.log("Got the transcript...")
+    console.log("Got the transcript...",)
     return fullTexts
 }
 
@@ -83,6 +83,7 @@ const generateData = async (prompt: string, full_text:string, prevExamples:Examp
     $response_goes_here
     -----------
     \`\`\``;
+
     let messages: ChatMessage[] = [{
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: detailedInstruction
@@ -345,7 +346,6 @@ const getChatById = async (chatId: string)=>{
           }
       });
       const chat = await response.json();
-      console.log(response.status, "response after getting attempt")
       return chat
     } catch (error: any) {
       console.log("Error while updating the chat", error.message)
@@ -358,18 +358,19 @@ app.post('/createModel', async (req: Request , res: Response) => {
     const { video_ids, currentChat } = await req.body;
     console.log(video_ids, "video_ids from body....");
 
-    if (!video_ids.length || !Array.isArray(video_ids)) {
+    if (!video_ids?.length || !Array.isArray(video_ids)) {
         return res.status(400).json('Invalid video IDs provided.');
     }
 
     try {
         // Your existing logic
-        const urlForVoice = `https://www.youtube.com/watch?v=${video_ids[0]}`
+        const urlForVoice = currentChat.voiceUrl;
         await extractAndSaveAudio(urlForVoice, currentChat);
         const fullTexts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
         const texts = fullTexts.map((item) => {
             return item.map((subItem) => subItem.text).join(" ");
         }) as string[];
+
 
         let prevExamples: any[] = [];
         for (const fullText of texts) {
