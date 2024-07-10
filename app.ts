@@ -368,8 +368,9 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
         console.log(`FFmpeg found at: ${ffmpegPath.trim()}`);
 
         console.log("Starting download and conversion...");
-        
-        const ytDlpPath = path.resolve('/usr/local/bin/yt-dlp');
+        // __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'
+        const ytDlpPath = path.resolve('/usr/bin/yt-dlp');
+        console.log(ytDlpPath, "ytdlpath...")
         
         const args = [
             url,
