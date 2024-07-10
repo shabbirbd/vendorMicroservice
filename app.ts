@@ -11,7 +11,7 @@ import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
 import path from 'path';
 import { YoutubeTranscript } from 'youtube-transcript';
 import ytdl from 'ytdl-core';
-
+import youtubedl from 'youtube-dl-exec';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -365,9 +365,9 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
 import util from 'util';
 import childProcess from 'child_process';
 
-const execFile = util.promisify(childProcess.execFile);
-const execAsync = util.promisify(childProcess.exec);
-
+// const execFile = util.promisify(childProcess.execFile);
+// const execAsync = util.promisify(childProcess.exec);
+const execAsync = util.promisify(require('child_process').exec);
 const extractAndSaveAudio = async (url: any, chat: any) => {
     try {
         const output = path.resolve(`${chat._id}output.mp3`);
@@ -377,29 +377,41 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
         console.log(`FFmpeg found at: ${ffmpegPath.trim()}`);
 
         console.log("Starting download and conversion...");
-        const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
-        console.log(ytDlpPath, "ytdlpath...")
-        console.log(`Current PATH: ${process.env.PATH}`);
+        // const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+        // console.log(ytDlpPath, "ytdlpath...")
         
-        const args = [
-            url,
-            '--extract-audio',
-            '--audio-format', 'mp3',
-            '--output', output,
-            '--no-check-certificates',
-            '--no-warnings',
-            '--prefer-free-formats',
-            '--add-header', 'referer:youtube.com',
-            '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--ffmpeg-location', ffmpegPath.trim()
-        ];
+        // const args = [
+        //     url,
+        //     '--extract-audio',
+        //     '--audio-format', 'mp3',
+        //     '--output', output,
+        //     '--no-check-certificates',
+        //     '--no-warnings',
+        //     '--prefer-free-formats',
+        //     '--add-header', 'referer:youtube.com',
+        //     '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        //     '--ffmpeg-location', ffmpegPath.trim()
+        // ];
+        const options = {
+            extractAudio: true,
+            audioFormat: 'mp3',
+            output: output,
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true,
+            addHeader: [
+                'referer:youtube.com',
+                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            ],
+            ffmpegLocation: ffmpegPath.trim(),
+        };
 
-        console.log('Executing command:', ytDlpPath, args.join(' '));
 
-        const { stdout, stderr } = await execFile(ytDlpPath, args);
+        // const { stdout, stderr } = await execFile(ytDlpPath, args);
         
-        console.log('yt-dlp stdout:', stdout);
-        console.log('yt-dlp stderr:', stderr);
+        // console.log('yt-dlp stdout:', stdout);
+        // console.log('yt-dlp stderr:', stderr);
+        await youtubedl(url, options);
 
         console.log('File has been downloaded and converted successfully');
         
