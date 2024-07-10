@@ -391,6 +391,8 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
             '--ffmpeg-location', ffmpegPath.trim()
         ];
 
+        console.log('Executing command:', ytDlpPath, args.join(' '));
+
         const { stdout, stderr } = await execFile(ytDlpPath, args);
         
         console.log('yt-dlp stdout:', stdout);
