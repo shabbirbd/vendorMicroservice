@@ -12,6 +12,7 @@ import path from 'path';
 import { YoutubeTranscript } from 'youtube-transcript';
 import ytdl from 'ytdl-core';
 
+
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 
@@ -91,7 +92,7 @@ const generateData = async (prompt: string, full_text:string, prevExamples:Examp
 
     if (prevExamples && prevExamples.length) {
     // Sample up to 8 previous examples to use
-    const sampledExamples = prevExamples.length > 8 ? shuffleArray(prevExamples).slice(0, 8) : prevExamples;
+    const sampledExamples = prevExamples.length > 9 ? shuffleArray(prevExamples).slice(0, 9) : prevExamples;
     sampledExamples.forEach(example => {
       messages.push({ role: "assistant", content: example });
     });
@@ -191,7 +192,7 @@ const saveTrainingData = async (data: any[], systemMessage: string | null): Prom
 
 
 
-const initiateFinetuning = async (filePath: string)=>{
+const initiateFinetuning = async (filePath: string, model: string)=>{
     console.log("Initiating fine tuning...")
     if (!fs.existsSync(filePath)) {
       throw new Error('File does not exist: ' + filePath);
@@ -204,12 +205,14 @@ const initiateFinetuning = async (filePath: string)=>{
           file: fileStream,
           purpose: 'fine-tune'
       });
+
+      const baseModel = model.length > 0 ? model : "gpt-3.5-turbo";
   
       // Create a fine-tuning job with the uploaded file
       console.log("Starting fine tuning job in openai...")
       const job = await openAI.fineTuning.jobs.create({
           training_file: fileResponse.id,
-          model: "gpt-3.5-turbo"
+          model: baseModel
       });
   
       console.log("Fine tuning job started successfully...")
@@ -280,39 +283,130 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
 
 
 
-const extractAndSaveAudio = async (url : any, chat: any) => {
-    if (!ytdl.validateURL(url)) {
-        console.log("Invalid video url...")
-        return
-    }
+// const extractAndSaveAudio = async (url : any, chat: any) => {
+//     if (!ytdl.validateURL(url)) {
+//         console.log("Invalid video url...")
+//         return
+//     }
+//     console.log("Generating voice id...")
+//     console.log(url, "url.........")
 
-    const output = await path.resolve('output.mp3');
+//     const output = await path.resolve('output.mp3');
+//     console.log(output, "output......")
 
-    const stream = await  ytdl(url, {
-        quality: 'highestaudio',
-    });
+//     const videoInfo = await ytdl.getInfo(url);
+//     // const audioFormats = await ytdl.filterFormats(videoInfo.formats, "audioonly");
+//     // console.log(audioFormats, "audioformats...")
+//     let stream;
 
-     ffmpeg(stream)
-        .audioCodec('libmp3lame') // Ensure the codec is set for mp3
-        .toFormat('mp3')
-        .save(output) // Save locally
-        .on('end', async () => {
-            console.log('File has been converted succesfully');
-            // sendToAnotherAPI(output, res); )
-            const filePath = path.resolve('./output.mp3'); 
+//     try{
+//         stream = await  ytdl.downloadFromInfo(videoInfo, {
+//             quality: 'highestaudio',
+//             requestOptions: {
+//                 headers: {
+//                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+//                 }
+//             }
+//         });
+//         console.log("Stream generated successfully....")
+//     } catch (error){
+//         console.log(error, "error from ytdl....")
+//     }
+//     console.log("starting convertion to audio....")
+//      ffmpeg(stream)
+//         .audioCodec('libmp3lame')
+//         .toFormat('mp3')
+//         .save(output)
+//         .on('end', async () => {
+//             console.log('File has been converted succesfully');
+//             const filePath = path.resolve('./output.mp3'); 
+//             const formData = new FormData();
+//             formData.append("files", fs.createReadStream(filePath))
+//             formData.append("name", chat.name)
+
+//             const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+//                 method: "POST",
+//                 body: formData,
+//                 headers: {
+//                     ...formData.getHeaders(),
+//                     "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
+//                 },
+//             });
+
+//             const voiceId = await response.json();
+//             if(response.ok){
+//                 console.log(voiceId.voice_id, "voiceID.......................");
+//                 const newChat = {
+//                     ...chat,
+//                     voiceId: voiceId.voice_id,
+//                 }
+//                 const updateLog = await updateChat(chat._id, newChat);
+//                 console.log("Chat updated successfully with voiceId..." , updateLog)
+//                 return
+//             } else {
+//                 console.error("Failed to clone voice..." , response)
+//                 return
+//             }
+//         })
+//         .on('error', (err) => {
+//             console.error('Error converting file: ', err);
+//             return
+//         });
+// };
+import util from 'util';
+import childProcess from 'child_process';
+
+const execFile = util.promisify(childProcess.execFile);
+const execAsync = util.promisify(childProcess.exec);
+
+const extractAndSaveAudio = async (url: any, chat: any) => {
+    try {
+        const output = path.resolve(`${chat._id}output.mp3`);
+        console.log(output, "output......");
+        // Find FFmpeg path
+        const { stdout: ffmpegPath } = await execAsync('which ffmpeg');
+        console.log(`FFmpeg found at: ${ffmpegPath.trim()}`);
+
+        console.log("Starting download and conversion...");
+        
+        const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+        
+        const args = [
+            url,
+            '--extract-audio',
+            '--audio-format', 'mp3',
+            '--output', output,
+            '--no-check-certificates',
+            '--no-warnings',
+            '--prefer-free-formats',
+            '--add-header', 'referer:youtube.com',
+            '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            '--ffmpeg-location', ffmpegPath.trim()
+        ];
+
+        const { stdout, stderr } = await execFile(ytDlpPath, args);
+        
+        console.log('yt-dlp stdout:', stdout);
+        console.log('yt-dlp stderr:', stderr);
+
+        console.log('File has been downloaded and converted successfully');
+        
+        if (fs.existsSync(output)) {
+            const filePath = path.resolve(`./${chat._id}output.mp3`); 
             const formData = new FormData();
             formData.append("files", fs.createReadStream(filePath))
             formData.append("name", chat.name)
-
             const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-                method: "POST",
-                body: formData,
+            method: "POST",
+            body: formData,
                 headers: {
                     ...formData.getHeaders(),
                     "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
                 },
             });
-
+            fs.unlink(output, (unlinkErr) => {
+                if (unlinkErr) console.error('Error deleting file:', unlinkErr);
+            });
             const voiceId = await response.json();
             if(response.ok){
                 console.log(voiceId.voice_id, "voiceID.......................");
@@ -327,12 +421,17 @@ const extractAndSaveAudio = async (url : any, chat: any) => {
                 console.error("Failed to clone voice..." , response)
                 return
             }
-        })
-        .on('error', (err) => {
-            console.error('Error converting file: ', err);
-            return
-        });
-}
+        } else {
+            console.log("failed to generate voice id...")
+        }
+    } catch (error: any) {
+        console.error('Error:', error);
+    }
+};
+
+
+
+
 
 
 const getChatById = async (chatId: string)=>{
@@ -375,7 +474,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
         let prevExamples: any[] = [];
         for (const fullText of texts) {
             let resultsForText: any[] = [];
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i <= 10; i++) {
                 const data = await generateData(prompt, fullText, prevExamples, temperature, i);
                 resultsForText.push(data);
             }
@@ -385,9 +484,66 @@ app.post('/createModel', async (req: Request , res: Response) => {
         const systemMessages = await generateSystemMessages(prompt);
         const parsedExamples = parseExamplesToObjects(prevExamples);
         const filePath: string = await saveTrainingData(parsedExamples, systemMessages);
-        const fineTuningId = await initiateFinetuning(filePath);
+        const fineTuningId = await initiateFinetuning(filePath, currentChat.baseModel);
         const createdModel = await createTunedModel(fineTuningId);
         console.log("created model.....", createdModel);
+
+        const getChat = await getChatById(currentChat._id);
+
+        if (createdModel) {
+            const newChat = {
+                ...getChat,
+                baseModel: createdModel,
+                provider: 'gpt',
+            };
+            const updateLog = await updateChat(currentChat._id, newChat);
+            console.log("Chat updated successfully with model name...", updateLog);
+        } else {
+            console.log('Model name not returned from the service');
+        }
+
+        return res.status(200).json({ model_name: createdModel });
+    } catch (error) {
+        console.error('Error during model creation:', error);
+        return res.status(500).json(error);
+    }
+});
+
+
+app.post('/updateModel', async (req: Request , res: Response) => {
+    const { video_ids, currentChat } = await req.body;
+    console.log(video_ids, "video_ids from body....");
+
+    if (!video_ids?.length || !Array.isArray(video_ids)) {
+        return res.status(400).json('Invalid video IDs provided.');
+    }
+
+    try {
+        // Your existing logic
+        const fullTexts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
+        const texts = fullTexts.map((item) => {
+            return item.map((subItem) => subItem.text).join(" ");
+        }) as string[];
+
+
+        let prevExamples: any[] = [];
+        for (const fullText of texts) {
+            let resultsForText: any[] = [];
+            for (let i = 0; i <= 10; i++) {
+                const data = await generateData(prompt, fullText, prevExamples, temperature, i);
+                resultsForText.push(data);
+            }
+            prevExamples = [...prevExamples, ...resultsForText];
+        }
+
+        const model = currentChat.baseModel;
+
+        const systemMessages = await generateSystemMessages(prompt);
+        const parsedExamples = parseExamplesToObjects(prevExamples);
+        const filePath: string = await saveTrainingData(parsedExamples, systemMessages);
+        const fineTuningId = await initiateFinetuning(filePath, model);
+        const createdModel = await createTunedModel(fineTuningId);
+        console.log("updated model.....", createdModel);
 
         const getChat = await getChatById(currentChat._id);
 
