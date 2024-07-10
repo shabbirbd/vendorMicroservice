@@ -369,7 +369,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
 
         console.log("Starting download and conversion...");
         
-        const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+        const ytDlpPath = path.resolve('/usr/local/bin/yt-dlp');
         
         const args = [
             url,
