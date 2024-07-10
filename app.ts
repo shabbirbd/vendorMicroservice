@@ -332,6 +332,9 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
 //                     "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
 //                 },
 //             });
+//             fs.unlink(output, (unlinkErr) => {
+//                 if (unlinkErr) console.error('Error deleting file:', unlinkErr);
+//             });
 
 //             const voiceId = await response.json();
 //             if(response.ok){
@@ -353,6 +356,8 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
 //             return
 //         });
 // };
+
+
 import util from 'util';
 import childProcess from 'child_process';
 
@@ -371,6 +376,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
         // __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'
         const ytDlpPath = path.resolve('/usr/local/bin/yt-dlp');
         console.log(ytDlpPath, "ytdlpath...")
+        console.log(`Current PATH: ${process.env.PATH}`);
         
         const args = [
             url,
