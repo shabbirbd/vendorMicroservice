@@ -300,11 +300,15 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
 //     let stream;
 
 //     try{
-//         stream = await  ytdl.downloadFromInfo(videoInfo, {
+//         stream = await  ytdl(url, {
 //             quality: 'highestaudio',
 //             requestOptions: {
 //                 headers: {
 //                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+//                     'Accept': '*/*',
+//                     'Accept-Language': 'en-US,en;q=0.5',
+//                     'Connection': 'keep-alive',
+//                     'Referer': 'https://www.youtube.com/'
 //                 }
 //             }
 //         });
@@ -373,8 +377,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
         console.log(`FFmpeg found at: ${ffmpegPath.trim()}`);
 
         console.log("Starting download and conversion...");
-        // __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'
-        const ytDlpPath = path.resolve('/usr/local/bin/yt-dlp');
+        const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
         console.log(ytDlpPath, "ytdlpath...")
         console.log(`Current PATH: ${process.env.PATH}`);
         
@@ -579,3 +582,10 @@ app.post('/updateModel', async (req: Request , res: Response) => {
 app.listen(port,'0.0.0.0', () => {
     console.log(`Model creation running on ${port}`);
 });
+
+
+
+
+// /usr/local/bin/yt-dlp https://www.youtube.com/watch?v=msIZQwKy6lc --extract-audio --audio-format mp3 --output /app/668ed5d19ea2a61422caa197output.mp3 --no-check-certificates --no-warnings --prefer-free-formats --add-header "referer:youtube.com" --add-header "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" --ffmpeg-location /usr/bin/ffmpeg
+
+// /usr/local/bin/yt-dlp https://www.youtube.com/watch?v=msIZQwKy6lc --extract-audio --audio-format mp3 --output /tmp/668ed5d19ea2a61422caa197output.mp3 --no-check-certificates --no-warnings --prefer-free-formats --add-header "referer:youtube.com" --add-header "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" --ffmpeg-location /usr/bin/ffmpeg
