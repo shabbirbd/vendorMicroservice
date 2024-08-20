@@ -7,7 +7,6 @@ import fetch from 'node-fetch';
 import OpenAI from 'openai';
 import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
 import path from 'path';
-import { YoutubeTranscript } from 'youtube-transcript';
 import axios from 'axios';
 
 
