@@ -1,8 +1,6 @@
 require('dotenv').config();
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import cors from 'cors';
 import express, { Request, Response } from 'express';
-import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
 import fs from 'fs';
 import fetch from 'node-fetch';
@@ -10,14 +8,7 @@ import OpenAI from 'openai';
 import { ChatCompletionRequestMessageRoleEnum } from 'openai-edge';
 import path from 'path';
 import { YoutubeTranscript } from 'youtube-transcript';
-import ytdl from 'ytdl-core';
-import youtubedl from 'youtube-dl-exec';
-
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-
-
-
-
+import axios from 'axios';
 
 
 type ChatCompletionRequestMessageRole = "system" | "user" | "assistant";
@@ -33,20 +24,15 @@ interface ChatMessage {
     content: string;
 }
 
-
-
 const app = express();
 const port = 8000;
-app.use(express.json()); 
+app.use(express.json({ limit: '100mb' })); 
 app.use(cors())
 
 
 const openAI =  new  OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
-
-
-
 
 
 function shuffleArray(array: any[]) {
@@ -58,15 +44,11 @@ function shuffleArray(array: any[]) {
 }
 
 
-
 const getTranscript = async (videoId: string)=>{
     const fullTexts = await YoutubeTranscript.fetchTranscript(videoId);
     console.log("Got the transcript...",)
     return fullTexts
 }
-
-
-
 
 const generateData = async (prompt: string, full_text:string, prevExamples:Example[], temperature=0.5, index: number): Promise<string | null>=>{
     console.log(`Generating data.....${index}`)
@@ -279,178 +261,139 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
       console.log("Error while updating the chat", error.message)
       throw error
     }
-}
+};
 
 
 
-// const extractAndSaveAudio = async (url : any, chat: any) => {
-//     if (!ytdl.validateURL(url)) {
-//         console.log("Invalid video url...")
-//         return
-//     }
-//     console.log("Generating voice id...")
-//     console.log(url, "url.........")
+const getActiveUrl = async (id: string) => {
+    while (true) {
+      const response = await fetch(`https://youtube-to-mp315.p.rapidapi.com/status/${id}`,
+        {
+          method: "GET",
+          headers: {
+            "x-rapidapi-host": "youtube-to-mp315.p.rapidapi.com",
+            "x-rapidapi-key": "90287b23damsh24ab22996157a66p178b0fjsn1f40752eeff5"
+          }
+        }
+      )
+      const data = await response.json();
+      const status = data.status;
+      if (status === "AVAILABLE") {
+        console.log("conversion done...")
+        return data.downloadUrl
+      } else if (status === "CONVERSION_ERROR") {
+        console.log(`conversion failed....`)
+        return ''
+      } else if (status === "CONVERTING") {
+        console.log("Still converting checking in 5 seconds....")
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } else {
+        console.log(`Status is: ${status}. Exiting...`);
+        return ""
+      }
+    }
+  };
 
-//     const output = await path.resolve('output.mp3');
-//     console.log(output, "output......")
-
-//     const videoInfo = await ytdl.getInfo(url);
-//     // const audioFormats = await ytdl.filterFormats(videoInfo.formats, "audioonly");
-//     // console.log(audioFormats, "audioformats...")
-//     let stream;
-
-//     try{
-//         stream = await  ytdl(url, {
-//             quality: 'highestaudio',
-//             requestOptions: {
-//                 headers: {
-//                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-//                     'Accept': '*/*',
-//                     'Accept-Language': 'en-US,en;q=0.5',
-//                     'Connection': 'keep-alive',
-//                     'Referer': 'https://www.youtube.com/'
-//                 }
-//             }
-//         });
-//         console.log("Stream generated successfully....")
-//     } catch (error){
-//         console.log(error, "error from ytdl....")
-//     }
-//     console.log("starting convertion to audio....")
-//      ffmpeg(stream)
-//         .audioCodec('libmp3lame')
-//         .toFormat('mp3')
-//         .save(output)
-//         .on('end', async () => {
-//             console.log('File has been converted succesfully');
-//             const filePath = path.resolve('./output.mp3'); 
-//             const formData = new FormData();
-//             formData.append("files", fs.createReadStream(filePath))
-//             formData.append("name", chat.name)
-
-//             const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-//                 method: "POST",
-//                 body: formData,
-//                 headers: {
-//                     ...formData.getHeaders(),
-//                     "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
-//                 },
-//             });
-//             fs.unlink(output, (unlinkErr) => {
-//                 if (unlinkErr) console.error('Error deleting file:', unlinkErr);
-//             });
-
-//             const voiceId = await response.json();
-//             if(response.ok){
-//                 console.log(voiceId.voice_id, "voiceID.......................");
-//                 const newChat = {
-//                     ...chat,
-//                     voiceId: voiceId.voice_id,
-//                 }
-//                 const updateLog = await updateChat(chat._id, newChat);
-//                 console.log("Chat updated successfully with voiceId..." , updateLog)
-//                 return
-//             } else {
-//                 console.error("Failed to clone voice..." , response)
-//                 return
-//             }
-//         })
-//         .on('error', (err) => {
-//             console.error('Error converting file: ', err);
-//             return
-//         });
-// };
-
-
-import util from 'util';
-import childProcess from 'child_process';
-
-// const execFile = util.promisify(childProcess.execFile);
-// const execAsync = util.promisify(childProcess.exec);
-const execAsync = util.promisify(require('child_process').exec);
 const extractAndSaveAudio = async (url: any, chat: any) => {
     try {
-        const output = path.resolve(`${chat._id}output.mp3`);
-        console.log(output, "output......");
-        // Find FFmpeg path
-        const { stdout: ffmpegPath } = await execAsync('which ffmpeg');
-        console.log(`FFmpeg found at: ${ffmpegPath.trim()}`);
-
-        console.log("Starting download and conversion...");
-        // const ytDlpPath = path.resolve(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
-        // console.log(ytDlpPath, "ytdlpath...")
-        
-        // const args = [
-        //     url,
-        //     '--extract-audio',
-        //     '--audio-format', 'mp3',
-        //     '--output', output,
-        //     '--no-check-certificates',
-        //     '--no-warnings',
-        //     '--prefer-free-formats',
-        //     '--add-header', 'referer:youtube.com',
-        //     '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        //     '--ffmpeg-location', ffmpegPath.trim()
-        // ];
         const options = {
-            extractAudio: true,
-            audioFormat: 'mp3',
-            output: output,
-            noCheckCertificates: true,
-            noWarnings: true,
-            preferFreeFormats: true,
-            addHeader: [
-                'referer:youtube.com',
-                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            ],
-            ffmpegLocation: ffmpegPath.trim(),
+          method: 'POST',
+          url: 'https://youtube-to-mp315.p.rapidapi.com/download',
+          params: {
+            url: url,
+            format: 'mp3'
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-rapidapi-host': 'youtube-to-mp315.p.rapidapi.com',
+            'x-rapidapi-key': "90287b23damsh24ab22996157a66p178b0fjsn1f40752eeff5"
+          }
         };
-
-
-        // const { stdout, stderr } = await execFile(ytDlpPath, args);
-        
-        // console.log('yt-dlp stdout:', stdout);
-        // console.log('yt-dlp stderr:', stderr);
-        await youtubedl(url, options);
-
-        console.log('File has been downloaded and converted successfully');
-        
-        if (fs.existsSync(output)) {
-            const filePath = path.resolve(`./${chat._id}output.mp3`); 
-            const formData = new FormData();
-            formData.append("files", fs.createReadStream(filePath))
-            formData.append("name", chat.name)
-            const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-            method: "POST",
-            body: formData,
-                headers: {
-                    ...formData.getHeaders(),
-                    "xi-api-key" : "8339ed653a92fb25e0d1f1270121b055"
-                },
-            });
-            fs.unlink(output, (unlinkErr) => {
-                if (unlinkErr) console.error('Error deleting file:', unlinkErr);
-            });
-            const voiceId = await response.json();
-            if(response.ok){
-                console.log(voiceId.voice_id, "voiceID.......................");
-                const newChat = {
-                    ...chat,
-                    voiceId: voiceId.voice_id,
-                }
-                const updateLog = await updateChat(chat._id, newChat);
-                console.log("Chat updated successfully with voiceId..." , updateLog)
-                return
-            } else {
-                console.error("Failed to clone voice..." , response)
-                return
+        const response = await axios.request(options);
+        const output = path.resolve(`${chat._id}output.mp3`);
+        if (response.status === 200) {
+          console.log("Converting youtube to mp3....")
+          const responseId = await response.data.id;
+          const url = await getActiveUrl(responseId)
+          console.log(url, "mp3Url......")
+          if (url?.length < 1) {
+            return {
+              type: "default",
+              voiceId: "pNInz6obpgDQGcFmaJgB"
             }
+          }
+          let data;
+          let buffer: any;
+          try {
+            const res2 = await fetch(url, {
+              method: "GET"
+            });
+            console.log(res2.status, "res2.status");
+            data = await res2.arrayBuffer();
+            buffer = await Buffer.from(new Uint8Array(data));
+            await new Promise<void>((resolve, reject) => {
+              fs.writeFile(output, buffer, (err) => {
+                if (err) {
+                  console.log("Failed to save file", err);
+                  reject(err);
+                } else {
+                  console.log("File saved successfully...");
+                  resolve();
+                }
+              });
+            });
+            console.log(data, "responseData...")
+          } catch (err: any) {
+            console.log(`error from download: ${err.message}`)
+            return {
+              type: "default",
+              voiceId: "pNInz6obpgDQGcFmaJgB"
+            }
+          }
+          const formData = new FormData();
+          const filePath = await path.resolve(`./${chat._id}output.mp3`);
+          await formData.append('files', fs.createReadStream(filePath));
+          formData.append("name", chat._id);
+    
+          try {
+            console.log("Sending request to ElevenLabs API...");
+            const response = await axios.post('https://api.elevenlabs.io/v1/voices/add', formData, {
+              headers: {
+                ...formData.getHeaders(),
+                "xi-api-key": "sk_a8c5fd86a68a757e9ee5e822c17654cae7df8336a9dbc61b"
+              },
+            });
+            console.log("Response from ElevenLabs:", response.data);
+            const voiceId = response.data.voice_id;
+            console.log("Voice ID:", voiceId);
+            fs.unlink(output, (unlinkErr) => {
+              if (unlinkErr) console.error('Error deleting file:', unlinkErr);
+            });
+            return {
+              type: "cloned",
+              voiceId: voiceId
+            };
+          } catch (error: any) {
+            console.error("Error in ElevenLabs API call:", error.response ? error.response.data : error.message);
+            return {
+              type: "default",
+              voiceId: "pNInz6obpgDQGcFmaJgB"
+            }
+          }
         } else {
-            console.log("failed to generate voice id...")
+          console.log("Voice clone failed..");
+          return {
+            type: "default",
+            voiceId: "pNInz6obpgDQGcFmaJgB"
+          }
         }
-    } catch (error: any) {
-        console.error('Error:', error);
-    }
+      } catch (error: any) {
+        console.error('Error in extractAndSaveAudio:', error.message);
+        return {
+          type: "default",
+          voiceId: "pNInz6obpgDQGcFmaJgB"
+        }
+      }
 };
 
 

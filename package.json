@@ -16,6 +16,7 @@
     "@aws-sdk/credential-provider-node": "^3.569.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "aws-sdk": "^2.1613.0",
+    "axios": "^1.7.4",
     "child_process": "^1.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
