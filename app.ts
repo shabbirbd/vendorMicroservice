@@ -317,10 +317,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
           const url = await getActiveUrl(responseId)
           console.log(url, "mp3Url......")
           if (url?.length < 1) {
-            return {
-              type: "default",
-              voiceId: "pNInz6obpgDQGcFmaJgB"
-            }
+            return "pNInz6obpgDQGcFmaJgB"
           }
           let data;
           let buffer: any;
@@ -369,10 +366,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
             fs.unlink(output, (unlinkErr) => {
               if (unlinkErr) console.error('Error deleting file:', unlinkErr);
             });
-            return {
-              type: "cloned",
-              voiceId: voiceId
-            };
+            return voiceId
           } catch (error: any) {
             console.error("Error in ElevenLabs API call:", error.response ? error.response.data : error.message);
             return {
@@ -382,17 +376,11 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
           }
         } else {
           console.log("Voice clone failed..");
-          return {
-            type: "default",
-            voiceId: "pNInz6obpgDQGcFmaJgB"
-          }
+          return "pNInz6obpgDQGcFmaJgB"
         }
       } catch (error: any) {
         console.error('Error in extractAndSaveAudio:', error.message);
-        return {
-          type: "default",
-          voiceId: "pNInz6obpgDQGcFmaJgB"
-        }
+        return "pNInz6obpgDQGcFmaJgB"
       }
 };
 
