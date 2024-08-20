@@ -45,7 +45,21 @@ function shuffleArray(array: any[]) {
 
 
 const getTranscript = async (videoId: string)=>{
-    const fullTexts = await YoutubeTranscript.fetchTranscript(videoId);
+    const options = {
+        method: 'GET',
+        url: 'https://youtube-transcriptor.p.rapidapi.com/transcript',
+        params: {
+          video_id: videoId,
+        },
+        headers: {
+          'x-rapidapi-host': 'youtube-transcriptor.p.rapidapi.com',
+          'x-rapidapi-key': '90287b23damsh24ab22996157a66p178b0fjsn1f40752eeff5'
+        }
+    };
+    const response = await axios.request(options);
+    const data = await response.data[0];
+    const fullTexts = data.transcriptionAsText;
+    // const fullTexts = await YoutubeTranscript.fetchTranscript(videoId);
     console.log("Got the transcript...",)
     return fullTexts
 }
@@ -420,10 +434,10 @@ app.post('/createModel', async (req: Request , res: Response) => {
         // Your existing logic
         const urlForVoice = currentChat.voiceUrl;
         await extractAndSaveAudio(urlForVoice, currentChat);
-        const fullTexts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
-        const texts = fullTexts.map((item) => {
-            return item.map((subItem) => subItem.text).join(" ");
-        }) as string[];
+        const texts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
+        // const texts = fullTexts.map((item) => {
+        //     return item.map((subItem) => subItem.text).join(" ");
+        // }) as string[];
 
 
         let prevExamples: any[] = [];
@@ -475,10 +489,10 @@ app.post('/updateModel', async (req: Request , res: Response) => {
 
     try {
         // Your existing logic
-        const fullTexts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
-        const texts = fullTexts.map((item) => {
-            return item.map((subItem) => subItem.text).join(" ");
-        }) as string[];
+        const texts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
+        // const texts = fullTexts.map((item) => {
+        //     return item.map((subItem) => subItem.text).join(" ");
+        // }) as string[];
 
 
         let prevExamples: any[] = [];
