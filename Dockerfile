@@ -25,12 +25,12 @@
 
 
 # Build stage
-FROM node:18-slim AS builder
+FROM node:21-slim AS builder
 
 # Install Python and other necessary build tools
-RUN apt-get update && apt-get install -y python3 make g++ ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y python3 make g++ ffmpeg \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -44,12 +44,12 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-slim
+FROM node:21-slim
 
 # Install Python and FFmpeg in the final image
-RUN apt-get update && apt-get install -y python3 ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y python3 ffmpeg \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
