@@ -260,7 +260,7 @@ const updateChat = async (chatId:string, chatForUpdate: {})=>{
     try {
       console.log("updating...", chatId)
       const newChat = {...chatForUpdate}
-      const response = await fetch(`https://vendor-ecru.vercel.app/api/chat`, {
+      const response = await fetch(`https://vendor.com/api/chat`, {
           method: "PUT",
           headers: {
               "Content-Type": "application/json"
