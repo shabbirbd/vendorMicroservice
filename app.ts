@@ -370,7 +370,7 @@ const extractAndSaveAudio = async (url: any, chat: any) => {
             const response = await axios.post('https://api.elevenlabs.io/v1/voices/add', formData, {
               headers: {
                 ...formData.getHeaders(),
-                "xi-api-key": "sk_a8c5fd86a68a757e9ee5e822c17654cae7df8336a9dbc61b"
+                "xi-api-key": "8339ed653a92fb25e0d1f1270121b055"
               },
             });
             console.log("Response from ElevenLabs:", response.data);
@@ -432,7 +432,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
     try {
         // Your existing logic
         const urlForVoice = currentChat.voiceUrl;
-        await extractAndSaveAudio(urlForVoice, currentChat);
+        const voiceId = await extractAndSaveAudio(urlForVoice, currentChat);
         const texts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
         // const texts = fullTexts.map((item) => {
         //     return item.map((subItem) => subItem.text).join(" ");
@@ -463,6 +463,7 @@ app.post('/createModel', async (req: Request , res: Response) => {
                 ...getChat,
                 baseModel: createdModel,
                 provider: 'gpt',
+                voiceId: voiceId
             };
             const updateLog = await updateChat(currentChat._id, newChat);
             console.log("Chat updated successfully with model name...", updateLog);
