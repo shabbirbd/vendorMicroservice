@@ -432,7 +432,10 @@ app.post('/createModel', async (req: Request , res: Response) => {
     try {
         // Your existing logic
         const urlForVoice = currentChat.voiceUrl;
-        const voiceId = await extractAndSaveAudio(urlForVoice, currentChat);
+        let voiceId = '';
+        if(currentChat.voiceType === 'clone'){
+           voiceId = await extractAndSaveAudio(urlForVoice, currentChat);
+        }
         const texts = await Promise.all(video_ids.map(video_id => getTranscript(video_id)));
         // const texts = fullTexts.map((item) => {
         //     return item.map((subItem) => subItem.text).join(" ");
