@@ -25,11 +25,8 @@ const app = (0, express_1.default)();
 const port = 8000;
 app.use(express_1.default.json({ limit: '100mb' }));
 app.use((0, cors_1.default)());
-// const openAI = new OpenAI({
-//   apiKey: process.env.OPENAI_API_KEY,
-// });
 const openAI = new openai_1.default({
-    apiKey: "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",
+    apiKey: process.env.OPENAI_API_KEY,
 });
 const downloadFileFromUrl = (url) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -197,7 +194,7 @@ const getModelById = (modelId) => __awaiter(void 0, void 0, void 0, function* ()
     console.log("Getting model....");
     try {
         console.log("Getting...", modelId);
-        const response = yield (0, node_fetch_1.default)(`https://vendor-ecru.vercel.app/api/fineTune/openai/getModelById${modelId}`, {
+        const response = yield (0, node_fetch_1.default)(`https://vendor.com/api/fineTune/openai/getModelById/${modelId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json"
@@ -240,9 +237,9 @@ app.post('/createModel', (req, res) => __awaiter(void 0, void 0, void 0, functio
         const fineTuningId = yield initiateFinetuning(config);
         const createdModel = yield checkStatusAndGetBaseModel(fineTuningId);
         console.log("created model.....", createdModel);
-        const getmodel = yield getModelById(currentModel._id);
+        // const getmodel = await getModelById(currentModel._id);
         if (createdModel) {
-            const newModel = Object.assign(Object.assign({}, getmodel), { createdModel: createdModel, status: 'active' });
+            const newModel = Object.assign(Object.assign({}, currentModel), { createdModel: createdModel, status: 'active' });
             const updateLog = yield updatemodel(currentModel._id, newModel);
             console.log("model updated successfully with model name...", updateLog);
         }
