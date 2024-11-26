@@ -23,6 +23,7 @@
     "fs": "^0.0.1-security",
     "openai": "^4.40.2",
     "openai-edge": "^1.2.2",
+    "os": "^0.1.2",
     "typescript": "^5.4.5",
     "util": "^0.12.5"
   },
